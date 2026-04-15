@@ -2,32 +2,489 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Detection de trafic Darknet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DarkTrace | ANCS Cyber Threat Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'%3E%3C/path%3E%3Cpath d='M12 8v4'%3E%3C/path%3E%3Ccircle cx='12' cy='16' r='0.5' fill='%2300ffff'%3E%3C/circle%3E%3C/svg%3E">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-        textarea { width: 100%; height: 150px; font-family: monospace; }
-        button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 5px; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        .result { margin-top: 20px; padding: 20px; border-radius: 10px; }
-        .TOR { background: #ffcccc; color: #990000; border: 1px solid #990000; }
-        .VPN { background: #ffe6cc; color: #cc7000; border: 1px solid #cc7000; }
-        .NonTOR { background: #ccffcc; color: #006600; border: 1px solid #006600; }
-        .NonVPN { background: #ccffcc; color: #006600; border: 1px solid #006600; }
-        .error { background: #ffcccc; color: #990000; border: 1px solid #990000; }
-        .loading { background: #eeeeee; color: #666666; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #050b14;
+            color: #e0e0e0;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* === ANIMATION MATRIX === */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .matrix-bg::before {
+            content: "01001110 01000101 01010100 01010111 01001111 01010010 01001011 01010100 01001111 01010010 01010110 01010000 01001110 01000100 01000001 01010010 01001011 01001110 01000101 01010100 01010100 01001111 01010010 01010110 01010000 01001110 00100000 01010100 01001111 01010010 00100000 01010110 01010000 01001110";
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre;
+            position: absolute;
+            animation: scrollMatrix 20s linear infinite;
+        }
+
+        @keyframes scrollMatrix {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        /* === GLOW EFFECT === */
+        .glow-orb {
+            position: fixed;
+            top: -20%;
+            right: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.08), transparent);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glow-orb-2 {
+            position: fixed;
+            bottom: -20%;
+            left: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.06), transparent);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* === CONTAINER === */
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 40px;
+        }
+
+        /* === HEADER CYBER === */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 48px;
+            flex-wrap: wrap;
+            gap: 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            padding-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #00ffff, #00ff88);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .logo-text h2 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #00ffff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            color: #6c86a3;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            50% { opacity: 0.6; box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+        }
+
+        /* === STATS PANEL === */
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(5, 11, 20, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            border-right: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .stat-card:last-child {
+            border-right: none;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #00ffff;
+            font-family: monospace;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #6c86a3;
+            margin-top: 6px;
+        }
+
+        /* === MAIN CARD === */
+        .cyber-card {
+            background: rgba(10, 20, 30, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            padding: 24px 32px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+        }
+
+        .card-header h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header h3::before {
+            content: '▶';
+            font-size: 10px;
+            color: #00ff88;
+        }
+
+        /* === INPUT ZONE === */
+        .input-zone {
+            padding: 32px;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c86a3;
+        }
+
+        .cyber-textarea {
+            width: 100%;
+            background: #0a121f;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 16px;
+            color: #00ff88;
+            font-family: 'Monaco', 'Fira Code', monospace;
+            font-size: 12px;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        .cyber-textarea:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        /* === BOUTON CYBER === */
+        .cyber-btn {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 255, 136, 0.1));
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 40px;
+            padding: 14px;
+            color: #00ffff;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .cyber-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(0, 255, 136, 0.2));
+            border-color: #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* === RÉSULTAT === */
+        .result-zone {
+            padding: 0 32px 32px 32px;
+        }
+
+        .threat-card {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .threat-header {
+            padding: 28px;
+            text-align: center;
+        }
+
+        .threat-header.tor { background: linear-gradient(135deg, rgba(220, 53, 69, 0.2), transparent); border-bottom: 2px solid #dc3545; }
+        .threat-header.vpn { background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), transparent); border-bottom: 2px solid #ffc107; }
+        .threat-header.normal { background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), transparent); border-bottom: 2px solid #00ff88; }
+
+        .threat-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .threat-title {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .threat-title.tor { color: #ff6b6b; text-shadow: 0 0 10px rgba(220,53,69,0.5); }
+        .threat-title.vpn { color: #ffc107; text-shadow: 0 0 10px rgba(255,193,7,0.5); }
+        .threat-title.normal { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+
+        /* === METRICS === */
+        .metrics-cyber {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: rgba(0, 255, 255, 0.1);
+            margin: 20px;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .metric-cyber {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-number {
+            font-size: 22px;
+            font-weight: 700;
+            color: #00ffff;
+            font-family: monospace;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c86a3;
+            margin-top: 6px;
+        }
+
+        /* === PROBABILITÉS === */
+        .probs-zone {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #6c86a3;
+            margin-bottom: 16px;
+        }
+
+        .prob-item {
+            margin-bottom: 14px;
+        }
+
+        .prob-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .prob-bar-bg {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        /* Loading */
+        .loading-cyber {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-top-color: #00ffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer */
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 11px;
+            color: #4a627a;
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            padding-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .stats-panel { grid-template-columns: repeat(2, 1fr); gap: 1px; }
+            .metrics-cyber { grid-template-columns: repeat(2, 1fr); }
+            .header { flex-direction: column; text-align: center; }
+        }
     </style>
 </head>
 <body>
-    <h1>🔍 Detection de trafic TOR / VPN</h1>
-    <p>Collez une ligne de flux CSV (format Darknet) :</p>
-    <textarea id="fluxInput" placeholder="Ex: 407,1,1,0,0,0,0,0,0,0,0,4914,407,0,407,407,0,0,0,0,0,0,0,20,20,2457,2457,0,0,0,0,2,0,0,0,0,1,0,0,0,0,0,0,0,1987,1047,0,20,0,0,0,0,0,0,0"></textarea>
-    <br><br>
-    <button onclick="analyser()">🔍 Analyser le flux</button>
-    
-    <div id="resultat" style="margin-top: 20px;"></div>
-    
+    <div class="matrix-bg"></div>
+    <div class="glow-orb"></div>
+    <div class="glow-orb-2"></div>
+
+    <div class="container">
+        <!-- Header Cyber -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🛡️</div>
+                <div class="logo-text">
+                    <h2>DARKTRACE</h2>
+                    <p>ANCS · THREAT INTELLIGENCE</p>
+                </div>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span style="font-size: 12px;">SYSTEM ONLINE</span>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <div class="stat-card"><div class="stat-value">XGBoost</div><div class="stat-label">ALGORITHM</div></div>
+            <div class="stat-card"><div class="stat-value">91.56%</div><div class="stat-label">ACCURACY</div></div>
+            <div class="stat-card"><div class="stat-value">76</div><div class="stat-label">FEATURES</div></div>
+            <div class="stat-card"><div class="stat-value">4</div><div class="stat-label">CLASSES</div></div>
+        </div>
+
+        <!-- Main Cyber Card -->
+        <div class="cyber-card">
+            <div class="card-header">
+                <h3>FLOW ANALYSIS TERMINAL</h3>
+            </div>
+
+            <div class="input-zone">
+                <div class="input-label">
+                    <span>⚡ INPUT STREAM (CSV FORMAT)</span>
+                    <span>CIC-DARKNET2020 COMPATIBLE</span>
+                </div>
+                <textarea id="fluxInput" class="cyber-textarea" rows="4" placeholder="57158.0,443.0,6.0,229.0,1.0,1.0,0.0,0.0,0.0,0.0,..."></textarea>
+                <button class="cyber-btn" onclick="analyser()">
+                    <span>▶</span> EXECUTE DEEP ANALYSIS
+                </button>
+            </div>
+
+            <div class="result-zone" id="resultat">
+                <div class="loading-cyber">
+                    <div class="loader"></div>
+                    <div style="color: #6c86a3;">AWAITING PACKET INSPECTION</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span>🔒 CLASSIFIED · XGBoost Classifier · 100 estimators · ANCS PFE 2026</span>
+        </div>
+    </div>
+
     <script>
-        // API sur Render
         const API_URL = 'https://darknet-api.onrender.com/predict';
         
         async function analyser() {
@@ -35,11 +492,11 @@
             const resultatDiv = document.getElementById('resultat');
             
             if (!ligne.trim()) {
-                resultatDiv.innerHTML = '<div class="result error">❌ Veuillez coller un flux</div>';
+                resultatDiv.innerHTML = '<div class="loading-cyber"><div style="color: #ff6b6b;">⚠️ NO INPUT DETECTED</div></div>';
                 return;
             }
             
-            resultatDiv.innerHTML = '<div class="result loading">⏳ Analyse en cours...</div>';
+            resultatDiv.innerHTML = '<div class="loading-cyber"><div class="loader"></div><div style="color: #00ffff;">ANALYZING PACKETS...</div></div>';
             
             try {
                 const response = await fetch(API_URL, {
@@ -52,23 +509,68 @@
                 
                 if (data.success) {
                     const classe = data.classe;
+                    const confidence = (data.confidence * 100).toFixed(1);
                     
-                    let message = '';
-                    if (classe === 'TOR') message = '⚠️ TRAFIC TOR DETECTE ⚠️';
-                    else if (classe === 'VPN') message = '⚠️ TRAFIC VPN DETECTE ⚠️';
-                    else message = '✅ Trafic normal';
+                    let threatClass = '';
+                    let threatIcon = '';
+                    let verdictText = '';
+                    
+                    if (classe === 'Tor') {
+                        threatClass = 'tor';
+                        threatIcon = '🌐';
+                        verdictText = 'TOR NETWORK DETECTED';
+                    } else if (classe === 'VPN') {
+                        threatClass = 'vpn';
+                        threatIcon = '🔒';
+                        verdictText = 'VPN TUNNEL DETECTED';
+                    } else {
+                        threatClass = 'normal';
+                        threatIcon = '✓';
+                        verdictText = 'CLEAR TRAFFIC';
+                    }
+                    
+                    let probsHtml = '';
+                    const colors = { 'Non-Tor': '#00ff88', 'NonVPN': '#00ff88', 'Tor': '#ff6b6b', 'VPN': '#ffc107' };
+                    
+                    for (const [name, prob] of Object.entries(data.probabilites)) {
+                        const percent = (prob * 100).toFixed(1);
+                        probsHtml += `
+                            <div class="prob-item">
+                                <div class="prob-header">
+                                    <span>${name}</span>
+                                    <span>${percent}%</span>
+                                </div>
+                                <div class="prob-bar-bg">
+                                    <div class="prob-bar-fill" style="width: ${percent}%; background: ${colors[name]};"></div>
+                                </div>
+                            </div>
+                        `;
+                    }
                     
                     resultatDiv.innerHTML = `
-                        <div class="result ${classe}">
-                            <h2>${message}</h2>
-                            <p><strong>Classe :</strong> ${classe}</p>
+                        <div class="threat-card">
+                            <div class="threat-header ${threatClass}">
+                                <div class="threat-icon">${threatIcon}</div>
+                                <div class="threat-title ${threatClass}">${verdictText}</div>
+                                <div style="font-size: 13px; margin-top: 8px;">CLASSIFICATION: ${classe} · CONFIDENCE: ${confidence}%</div>
+                            </div>
+                            <div class="metrics-cyber">
+                                <div class="metric-cyber"><div class="metric-number">${(data.precision * 100).toFixed(1)}%</div><div class="metric-label">PRECISION</div></div>
+                                <div class="metric-cyber"><div class="metric-number">${(data.recall * 100).toFixed(1)}%</div><div class="metric-label">RECALL</div></div>
+                                <div class="metric-cyber"><div class="metric-number">${(data.f1_score * 100).toFixed(1)}%</div><div class="metric-label">F1-SCORE</div></div>
+                                <div class="metric-cyber"><div class="metric-number">${confidence}%</div><div class="metric-label">CONFIDENCE</div></div>
+                            </div>
+                            <div class="probs-zone">
+                                <div class="section-title">📡 PROBABILITY DISTRIBUTION</div>
+                                ${probsHtml}
+                            </div>
                         </div>
                     `;
                 } else {
-                    resultatDiv.innerHTML = `<div class="result error">❌ Erreur : ${data.error}</div>`;
+                    resultatDiv.innerHTML = `<div class="loading-cyber"><div style="color: #ff6b6b;">⚠️ ERROR: ${data.error}</div></div>`;
                 }
             } catch (error) {
-                resultatDiv.innerHTML = `<div class="result error">❌ Erreur connexion : ${error.message}<br><br>Verifiez que l'API est bien demarree sur Render.<br>URL: ${API_URL}</div>`;
+                resultatDiv.innerHTML = `<div class="loading-cyber"><div style="color: #ff6b6b;">⚠️ CONNECTION ERROR: ${error.message}</div></div>`;
             }
         }
     </script>
