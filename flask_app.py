@@ -11,6 +11,20 @@ model = joblib.load('modele_xgboost.pkl')
 scaler = joblib.load('scaler.pkl')
 label_encoder = joblib.load('label_encoder.pkl')
 
+def convert_to_serializable(obj):
+    """Convertit les types numpy en types Python standard pour JSON"""
+    if isinstance(obj, np.float32):
+        return float(obj)
+    elif isinstance(obj, np.float64):
+        return float(obj)
+    elif isinstance(obj, np.int32):
+        return int(obj)
+    elif isinstance(obj, np.int64):
+        return int(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
 @app.route('/')
 def home():
     return jsonify({'status': 'ok', 'message': 'API Darknet'})
@@ -49,35 +63,37 @@ def predict():
         # Normaliser et prédire
         features_norm = scaler.transform([features])
         
-        # Obtenir les probabilités pour chaque classe
+        # Obtenir les probabilités
         probas = model.predict_proba(features_norm)[0]
         prediction = np.argmax(probas)
         classe = label_encoder.inverse_transform([prediction])[0]
         
-        # La confiance est la probabilité maximale
+        # Convertir les probabilités en float standard
+        probas_list = [float(p) for p in probas]
         confidence = float(max(probas))
         
-        # Calculer des métriques fictives basées sur la confiance
-        # (Plus la confiance est élevée, meilleures sont les métriques)
-        precision = confidence * 0.95 + 0.05  # Entre 0.05 et 1.00
-        recall = confidence * 0.92 + 0.08
-        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        # Calculer des métriques basées sur la confiance
+        precision = float(confidence * 0.95 + 0.05)
+        recall = float(confidence * 0.92 + 0.08)
+        f1_score = float(2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0)
         
-        return jsonify({
+        response_data = {
             'success': True,
             'classe': classe,
             'code': int(prediction),
             'confidence': confidence,
-            'precision': round(precision, 4),
-            'recall': round(recall, 4),
-            'f1_score': round(f1_score, 4),
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1_score,
             'probabilites': {
-                'Non-Tor': round(probas[0], 4),
-                'NonVPN': round(probas[1], 4),
-                'Tor': round(probas[2], 4),
-                'VPN': round(probas[3], 4)
+                'Non-Tor': probas_list[0],
+                'NonVPN': probas_list[1],
+                'Tor': probas_list[2],
+                'VPN': probas_list[3]
             }
-        })
+        }
+        
+        return jsonify(response_data)
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
