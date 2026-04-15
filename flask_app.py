@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import joblib
 import numpy as np
 import os
 
 app = Flask(__name__)
+CORS(app)
 
-# Chemins relatifs (Render gère tout)
+# Chemins relatifs
 model = joblib.load('modele_xgboost.pkl')
 scaler = joblib.load('scaler.pkl')
 label_encoder = joblib.load('label_encoder.pkl')
@@ -14,10 +16,16 @@ label_encoder = joblib.load('label_encoder.pkl')
 def home():
     return jsonify({'status': 'ok', 'message': 'API Darknet'})
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON invalide'}), 400
+            
         ligne_csv = data.get('csv_line', '')
         if not ligne_csv:
             return jsonify({'error': 'csv_line manquant'}), 400
