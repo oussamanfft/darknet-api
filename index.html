@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Detection de trafic Darknet</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        textarea { width: 100%; height: 150px; font-family: monospace; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 5px; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 20px; border-radius: 10px; }
+        .TOR { background: #ffcccc; color: #990000; border: 1px solid #990000; }
+        .VPN { background: #ffe6cc; color: #cc7000; border: 1px solid #cc7000; }
+        .NonTOR { background: #ccffcc; color: #006600; border: 1px solid #006600; }
+        .NonVPN { background: #ccffcc; color: #006600; border: 1px solid #006600; }
+        .error { background: #ffcccc; color: #990000; border: 1px solid #990000; }
+        .loading { background: #eeeeee; color: #666666; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Detection de trafic TOR / VPN</h1>
+    <p>Collez une ligne de flux CSV (format Darknet) :</p>
+    <textarea id="fluxInput" placeholder="Ex: 407,1,1,0,0,0,0,0,0,0,0,4914,407,0,407,407,0,0,0,0,0,0,0,20,20,2457,2457,0,0,0,0,2,0,0,0,0,1,0,0,0,0,0,0,0,1987,1047,0,20,0,0,0,0,0,0,0"></textarea>
+    <br><br>
+    <button onclick="analyser()">🔍 Analyser le flux</button>
+    
+    <div id="resultat" style="margin-top: 20px;"></div>
+    
+    <script>
+        // API sur Render
+        const API_URL = 'https://darknet-api.onrender.com/predict';
+        
+        async function analyser() {
+            const ligne = document.getElementById('fluxInput').value;
+            const resultatDiv = document.getElementById('resultat');
+            
+            if (!ligne.trim()) {
+                resultatDiv.innerHTML = '<div class="result error">❌ Veuillez coller un flux</div>';
+                return;
+            }
+            
+            resultatDiv.innerHTML = '<div class="result loading">⏳ Analyse en cours...</div>';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ csv_line: ligne })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const classe = data.classe;
+                    
+                    let message = '';
+                    if (classe === 'TOR') message = '⚠️ TRAFIC TOR DETECTE ⚠️';
+                    else if (classe === 'VPN') message = '⚠️ TRAFIC VPN DETECTE ⚠️';
+                    else message = '✅ Trafic normal';
+                    
+                    resultatDiv.innerHTML = `
+                        <div class="result ${classe}">
+                            <h2>${message}</h2>
+                            <p><strong>Classe :</strong> ${classe}</p>
+                        </div>
+                    `;
+                } else {
+                    resultatDiv.innerHTML = `<div class="result error">❌ Erreur : ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultatDiv.innerHTML = `<div class="result error">❌ Erreur connexion : ${error.message}<br><br>Verifiez que l'API est bien demarree sur Render.<br>URL: ${API_URL}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
