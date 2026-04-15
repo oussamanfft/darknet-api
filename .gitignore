@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-.env
-venv/
-*.pkl
-!modele_xgboost.pkl
-!scaler.pkl
-!label_encoder.pkl
